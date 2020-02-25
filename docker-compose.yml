@@ -1,0 +1,41 @@
+version: '3.7'
+services:
+  traefik:
+    image: traefik:2.1
+    container_name: traefik
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./config/:/etc/traefik/config/:ro
+      - traefik_ssl:/letsencrypt
+    networks:
+      - traefik
+
+  whoami:
+    image: containous/whoami
+    container_name: whoami
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ghost.rule=Host(`test.yourdomain.com`)"
+      - "traefik.http.routers.ghost.middlewares=SecHeader@file"
+      - "traefik.http.services.ghost.loadbalancer.server.port=80"
+      - "traefik.http.routers.ghost-https.rule=Host(`test.yourdomain.com`)"
+      - "traefik.http.routers.ghost-https.middlewares=SecHeader@file"
+      - "traefik.http.routers.ghost-https.entrypoints=https"
+      - "traefik.http.routers.ghost-https.tls=true"
+      - "traefik.http.routers.ghost-https.tls.certresolver=myhttpchallenge"
+    networks:
+      - traefik
+
+volumes:
+  traefik_ssl:
+    name: traefik_ssl
+
+networks:
+  traefik:
+    name: traefik
+
